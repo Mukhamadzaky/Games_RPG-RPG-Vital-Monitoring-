@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPG Health Monitoring</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    overflow:hidden;
+    background:#09111f;
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color:white;
+}
+
+canvas{
+    display:block;
+    background:linear-gradient(180deg, #6fd8ff 0%, #1c4d7a 100%);
+}
+
+#ui{
+    position:absolute;
+    top:16px;
+    left:16px;
+    width:min(300px, calc(100vw - 32px));
+    background:rgba(6, 12, 24, 0.82);
+    backdrop-filter:blur(10px);
+    color:white;
+    padding:16px;
+    border-radius:16px;
+    border:1px solid rgba(255,255,255,0.12);
+    box-shadow:0 12px 30px rgba(0,0,0,0.35);
+    z-index:100;
+}
+
+h2{
+    margin-bottom:10px;
+    font-size:22px;
+}
+
+.progress-row{
+    margin-bottom:10px;
+}
+
+.label{
+    font-size:13px;
+    margin-bottom:4px;
+    font-weight:600;
+}
+
+progress{
+    width:100%;
+    height:12px;
+    border-radius:999px;
+    overflow:hidden;
+    border:none;
+    appearance:none;
+    background:#21324a;
+}
+
+progress::-webkit-progress-bar{
+    background:#21324a;
+    border-radius:999px;
+}
+
+progress::-webkit-progress-value{
+    border-radius:999px;
+    background:linear-gradient(90deg, #4fd1c5, #38bdf8);
+}
+
+#hpBar::-webkit-progress-value{
+    background:linear-gradient(90deg, #ff5e62, #ff8f00);
+}
+
+#staminaBar::-webkit-progress-value{
+    background:linear-gradient(90deg, #38bdf8, #4f46e5);
+}
+
+#hungerBar::-webkit-progress-value{
+    background:linear-gradient(90deg, #f59e0b, #f97316);
+}
+
+#painBar::-webkit-progress-value{
+    background:linear-gradient(90deg, #8b5cf6, #ec4899);
+}
+
+#status{
+    margin-top:12px;
+    border-top:1px solid rgba(255,255,255,0.18);
+    padding-top:10px;
+}
+
+.status-item{
+    margin:4px 0;
+    font-size:13px;
+}
+
+#help{
+    margin-top:12px;
+    color:#fde68a;
+    font-size:12px;
+    line-height:1.5;
+}
+</style>
+</head>
+<body>
+
+<div id="ui">
+
+    <h2>🧙 Hero</h2>
+
+    <div class="label">❤️ HP</div>
+    <progress id="hpBar" max="100"></progress>
+
+    <div class="label">⚡ Stamina</div>
+    <progress id="staminaBar" max="100"></progress>
+
+    <div class="label">🍖 Lapar</div>
+    <progress id="hungerBar" max="100"></progress>
+
+    <div class="label">🦴 Pegal</div>
+    <progress id="painBar" max="100"></progress>
+
+    <div id="status">
+        <div>Penyakit : <span id="disease"></span></div>
+        <div>Risiko : <span id="risk"></span></div>
+        <div>Makanan : <span id="food"></span></div>
+    </div>
+
+    <div id="help">
+        WASD = Bergerak<br>
+        E = Makan
+    </div>
+
+</div>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const keys = {};
+const movementKeys = ["w", "a", "s", "d", "arrowup", "arrowleft", "arrowdown", "arrowright"];
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    player.x = Math.min(Math.max(player.x, 0), canvas.width - player.size);
+    player.y = Math.min(Math.max(player.y, 0), canvas.height - player.size);
+}
+
+window.addEventListener("resize", resizeCanvas);
+
+window.addEventListener("keydown", (e) => {
+    const key = e.key.toLowerCase();
+    if (movementKeys.includes(key)) e.preventDefault();
+    keys[key] = true;
+
+    if (key === "e") {
+        if (player.inventory.food > 0) {
+            player.inventory.food--;
+            player.hunger = Math.min(100, player.hunger + 30);
+            player.hp = Math.min(100, player.hp + 10);
+        }
+    }
+});
+
+window.addEventListener("keyup", (e) => {
+    keys[e.key.toLowerCase()] = false;
+});
+
+const player = {
+    x: 420,
+    y: 280,
+    size: 34,
+    speed: 2.8,
+    hp: 100,
+    stamina: 100,
+    hunger: 100,
+    pain: 0,
+    disease: "Sehat",
+    direction: 0,
+    walkCycle: 0,
+    isMoving: false,
+    inventory: { food: 5 }
+};
+
+const monster = {
+    x: 950,
+    y: 480,
+    size: 42,
+    hp: 50
+};
+
+const trees = [
+    { x: 180, y: 180 },
+    { x: 320, y: 620 },
+    { x: 720, y: 220 },
+    { x: 1030, y: 320 },
+    { x: 1220, y: 520 }
+];
+
+const rocks = [
+    { x: 500, y: 400 },
+    { x: 860, y: 250 },
+    { x: 1120, y: 650 }
+];
+
+let dayTime = 0;
+let lastTime = performance.now();
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function collidesWithObstacle(x, y, size) {
+    if (x < 0 || y < 0 || x + size > canvas.width || y + size > canvas.height) {
+        return true;
+    }
+
+    for (const tree of trees) {
+        const dx = (x + size / 2) - (tree.x + 5);
+        const dy = (y + size / 2) - (tree.y + 18);
+        if (Math.hypot(dx, dy) < 28 + size / 2) {
+            return true;
+        }
+    }
+
+    for (const rock of rocks) {
+        const dx = (x + size / 2) - rock.x;
+        const dy = (y + size / 2) - rock.y;
+        if (Math.hypot(dx, dy) < 24 + size / 2) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function updatePlayer(dt) {
+    let moveX = 0;
+    let moveY = 0;
+
+    if (keys["w"] || keys["arrowup"]) moveY -= 1;
+    if (keys["s"] || keys["arrowdown"]) moveY += 1;
+    if (keys["a"] || keys["arrowleft"]) moveX -= 1;
+    if (keys["d"] || keys["arrowright"]) moveX += 1;
+
+    player.isMoving = moveX !== 0 || moveY !== 0;
+
+    if (player.isMoving) {
+        const len = Math.hypot(moveX, moveY) || 1;
+        moveX /= len;
+        moveY /= len;
+
+        player.direction = Math.atan2(moveY, moveX);
+        player.walkCycle += 0.25 * dt;
+
+        let currentSpeed = player.speed;
+        if (player.stamina > 20) {
+            currentSpeed *= 1;
+        } else {
+            currentSpeed *= 0.7;
+        }
+
+        const nextX = player.x + moveX * currentSpeed * dt;
+        const nextY = player.y + moveY * currentSpeed * dt;
+
+        if (!collidesWithObstacle(nextX, player.y, player.size)) {
+            player.x = nextX;
+        }
+        if (!collidesWithObstacle(player.x, nextY, player.size)) {
+            player.y = nextY;
+        }
+
+        player.stamina = Math.max(0, player.stamina - 0.08 * dt);
+        player.hunger = Math.max(0, player.hunger - 0.03 * dt);
+        player.pain = Math.min(100, player.pain + 0.015 * dt);
+    } else {
+        player.walkCycle = 0;
+    }
+
+    player.stamina = Math.min(100, player.stamina + 0.03 * dt);
+    player.hunger = Math.max(0, player.hunger);
+    player.pain = Math.min(100, player.pain);
+
+    if (player.hunger < 20) {
+        player.speed = 2.1;
+    } else if (player.pain > 80) {
+        player.speed = 1.4;
+    } else {
+        player.speed = 2.8;
+    }
+
+    if (player.hunger <= 0) {
+        player.hp -= 0.04 * dt;
+    }
+
+    player.hp = Math.max(0, player.hp);
+    player.x = clamp(player.x, 0, canvas.width - player.size);
+    player.y = clamp(player.y, 0, canvas.height - player.size);
+}
+
+function updateMonster(dt) {
+    const dx = player.x - monster.x;
+    const dy = player.y - monster.y;
+    const distance = Math.hypot(dx, dy);
+
+    if (distance < 260) {
+        const step = 0.8 * dt;
+        monster.x += (dx / distance) * step;
+        monster.y += (dy / distance) * step;
+    }
+
+    if (distance < 46) {
+        player.hp -= 0.08 * dt;
+    }
+}
+
+function diseaseSystem() {
+    if (player.hunger < 10 && player.pain > 70) {
+        player.disease = "Demam";
+        player.hp -= 0.03;
+    } else if (player.hp < 30) {
+        player.disease = "Kritis";
+    } else {
+        player.disease = "Sehat";
+    }
+}
+
+function getRiskLevel() {
+    let score = 0;
+
+    if (player.hp < 50) score++;
+    if (player.hunger < 30) score++;
+    if (player.pain > 60) score++;
+
+    if (score === 0) return "Normal";
+    if (score === 1) return "Rendah";
+    if (score === 2) return "Sedang";
+    return "Tinggi";
+}
+
+function drawGround() {
+    const brightness = 60 + Math.sin(dayTime) * 35;
+    const skyTop = `rgb(${70 + brightness * 0.2}, ${120 + brightness * 0.35}, ${180 + brightness * 0.2})`;
+    const skyBottom = `rgb(${20 + brightness * 0.12}, ${80 + brightness * 0.2}, ${120 + brightness * 0.05})`;
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, skyTop);
+    gradient.addColorStop(1, skyBottom);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "rgba(120, 200, 80, 0.25)";
+    ctx.fillRect(0, canvas.height * 0.72, canvas.width, canvas.height * 0.28);
+
+    ctx.fillStyle = "rgba(255, 240, 170, 0.6)";
+    ctx.beginPath();
+    ctx.arc(canvas.width - 180, 120, 55 + Math.sin(dayTime * 0.8) * 6, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawTrees() {
+    trees.forEach((tree, index) => {
+        const sway = Math.sin(dayTime * 2 + index) * 4;
+
+        ctx.save();
+        ctx.translate(tree.x, tree.y);
+        ctx.shadowColor = "rgba(0,0,0,0.25)";
+        ctx.shadowBlur = 6;
+
+        ctx.fillStyle = "#5b3b2f";
+        ctx.fillRect(0, 0, 10, 36);
+
+        ctx.fillStyle = "#2e8b57";
+        ctx.beginPath();
+        ctx.arc(5 + sway, 5, 18, 0, Math.PI * 2);
+        ctx.arc(18 + sway, 12, 15, 0, Math.PI * 2);
+        ctx.arc(-8 + sway, 12, 15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    });
+}
+
+function drawRocks() {
+    rocks.forEach((rock) => {
+        ctx.save();
+        ctx.translate(rock.x, rock.y);
+        ctx.shadowColor = "rgba(0,0,0,0.24)";
+        ctx.shadowBlur = 5;
+        ctx.fillStyle = "#7a7f86";
+        ctx.beginPath();
+        ctx.moveTo(-16, 8);
+        ctx.lineTo(-6, -16);
+        ctx.lineTo(12, -12);
+        ctx.lineTo(18, 6);
+        ctx.lineTo(6, 16);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    });
+}
+
+function drawMonster() {
+    const bob = Math.sin(dayTime * 4) * 3;
+
+    ctx.save();
+    ctx.translate(monster.x, monster.y + bob);
+    ctx.shadowColor = "rgba(0,0,0,0.25)";
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = "#e11d48";
+    ctx.beginPath();
+    ctx.arc(20, 20, 20, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(15, 16, 3, 0, Math.PI * 2);
+    ctx.arc(25, 16, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(20, 24, 8, 0.1, Math.PI - 0.1);
+    ctx.stroke();
+    ctx.restore();
+}
+
+function drawPlayer() {
+    const bob = player.isMoving ? Math.sin(player.walkCycle * 4) * 2.5 : 0;
+
+    ctx.save();
+    ctx.translate(player.x + player.size / 2, player.y + player.size / 2 + bob);
+    ctx.rotate(player.direction);
+    ctx.translate(-player.size / 2, -player.size / 2);
+    ctx.shadowColor = "rgba(0,0,0,0.3)";
+    ctx.shadowBlur = 10;
+
+    ctx.fillStyle = "#2563eb";
+    ctx.fillRect(6, 8, 22, 20);
+    ctx.fillStyle = "#f8fafc";
+    ctx.fillRect(10, 4, 12, 8);
+    ctx.fillStyle = "#111827";
+    ctx.fillRect(12, 6, 3, 3);
+    ctx.fillRect(19, 6, 3, 3);
+
+    ctx.fillStyle = "#f59e0b";
+    ctx.fillRect(9, 28, 16, 6);
+    ctx.restore();
+}
+
+function updateUI() {
+    hpBar.value = player.hp;
+    staminaBar.value = player.stamina;
+    hungerBar.value = player.hunger;
+    painBar.value = player.pain;
+
+    disease.innerText = player.disease;
+    risk.innerText = getRiskLevel();
+    food.innerText = player.inventory.food;
+}
+
+function draw() {
+    drawGround();
+    drawTrees();
+    drawRocks();
+    drawMonster();
+    drawPlayer();
+}
+
+function gameLoop(now) {
+    const dt = Math.min((now - lastTime) / 16.67, 1.8);
+    lastTime = now;
+
+    dayTime += 0.002 * dt;
+    updatePlayer(dt);
+    updateMonster(dt);
+    diseaseSystem();
+    updateUI();
+    draw();
+
+    requestAnimationFrame(gameLoop);
+}
+
+setInterval(() => {
+    player.hunger = Math.max(0, player.hunger - 1);
+    player.pain = Math.min(100, player.pain + 0.3);
+    if (player.stamina < 100) player.stamina = Math.min(100, player.stamina + 0.5);
+}, 5000);
+
+resizeCanvas();
+gameLoop(performance.now());
+</script>
+
+</body>
+</html>
