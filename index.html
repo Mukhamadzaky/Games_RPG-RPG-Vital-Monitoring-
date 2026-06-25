@@ -6,11 +6,7 @@
 <title>RPG Health Monitoring</title>
 
 <style>
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
+*{ margin:0; padding:0; box-sizing:border-box; }
 
 body{
     overflow:hidden;
@@ -35,11 +31,8 @@ canvas{
     z-index:0;
 }
 
-#ui{
+.panel{
     position:absolute;
-    top:16px;
-    left:16px;
-    width:min(300px, calc(100vw - 32px));
     background:rgba(6, 12, 24, 0.82);
     backdrop-filter:blur(10px);
     color:white;
@@ -48,22 +41,83 @@ canvas{
     border:1px solid rgba(255,255,255,0.12);
     box-shadow:0 12px 30px rgba(0,0,0,0.35);
     z-index:100;
+    transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
-h2{
-    margin-bottom:10px;
-    font-size:22px;
+.panel.hidden{
+    opacity:0;
+    pointer-events:none;
+    transform: scale(0.95);
 }
 
-.progress-row{
-    margin-bottom:10px;
+#ui{
+    top:16px;
+    left:16px;
+    width:min(300px, calc(100vw - 32px));
 }
 
-.label{
-    font-size:13px;
-    margin-bottom:4px;
-    font-weight:600;
+#mapPanel{
+    bottom:16px;
+    right:16px;
+    width:min(280px, calc(100vw - 32px));
 }
+
+.toggle-btn{
+    position:absolute;
+    top:8px;
+    right:8px;
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.1);
+    border:1px solid rgba(255,255,255,0.2);
+    color:white;
+    cursor:pointer;
+    font-size:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: all 0.2s;
+    z-index:10;
+}
+
+.toggle-btn:hover{
+    background:rgba(255,255,255,0.25);
+    transform: scale(1.1);
+}
+
+.peek-btn{
+    position:absolute;
+    width:44px;
+    height:44px;
+    border-radius:50%;
+    background:rgba(6, 12, 24, 0.82);
+    backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,0.2);
+    color:white;
+    cursor:pointer;
+    font-size:18px;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:99;
+    box-shadow:0 8px 20px rgba(0,0,0,0.3);
+    transition: all 0.2s;
+}
+
+.peek-btn:hover{
+    background:rgba(15, 25, 50, 0.95);
+    transform: scale(1.1);
+}
+
+#uiPeek{ top:16px; left:16px; }
+#mapPeek{ bottom:16px; right:16px; }
+
+.peek-btn.show{ display:flex; }
+
+h2{ margin-bottom:10px; font-size:22px; }
+
+.label{ font-size:13px; margin-bottom:4px; font-weight:600; }
 
 progress{
     width:100%;
@@ -73,33 +127,15 @@ progress{
     border:none;
     appearance:none;
     background:#21324a;
+    margin-bottom:10px;
 }
 
-progress::-webkit-progress-bar{
-    background:#21324a;
-    border-radius:999px;
-}
-
-progress::-webkit-progress-value{
-    border-radius:999px;
-    background:linear-gradient(90deg, #4fd1c5, #38bdf8);
-}
-
-#hpBar::-webkit-progress-value{
-    background:linear-gradient(90deg, #ff5e62, #ff8f00);
-}
-
-#staminaBar::-webkit-progress-value{
-    background:linear-gradient(90deg, #38bdf8, #4f46e5);
-}
-
-#hungerBar::-webkit-progress-value{
-    background:linear-gradient(90deg, #f59e0b, #f97316);
-}
-
-#painBar::-webkit-progress-value{
-    background:linear-gradient(90deg, #8b5cf6, #ec4899);
-}
+progress::-webkit-progress-bar{ background:#21324a; border-radius:999px; }
+progress::-webkit-progress-value{ border-radius:999px; background:linear-gradient(90deg, #4fd1c5, #38bdf8); }
+#hpBar::-webkit-progress-value{ background:linear-gradient(90deg, #ff5e62, #ff8f00); }
+#staminaBar::-webkit-progress-value{ background:linear-gradient(90deg, #38bdf8, #4f46e5); }
+#hungerBar::-webkit-progress-value{ background:linear-gradient(90deg, #f59e0b, #f97316); }
+#painBar::-webkit-progress-value{ background:linear-gradient(90deg, #8b5cf6, #ec4899); }
 
 #status{
     margin-top:12px;
@@ -107,25 +143,8 @@ progress::-webkit-progress-value{
     padding-top:10px;
 }
 
-#mapCard{
-    margin-top:12px;
-    padding:10px;
-    border-radius:12px;
-    background:rgba(255,255,255,0.08);
-    border:1px solid rgba(255,255,255,0.14);
-}
-
-#mapName{
-    font-weight:700;
-    color:#fef3c7;
-    margin-bottom:4px;
-}
-
-#mapHint{
-    font-size:12px;
-    color:#cbd5e1;
-    line-height:1.45;
-}
+#mapName{ font-weight:700; color:#fef3c7; margin-bottom:4px; }
+#mapHint{ font-size:12px; color:#cbd5e1; line-height:1.45; }
 
 #minimap{
     width:100%;
@@ -136,16 +155,7 @@ progress::-webkit-progress-value{
     background:rgba(2,6,23,0.7);
 }
 
-#navHint{
-    margin-top:8px;
-    font-size:12px;
-    color:#fef3c7;
-}
-
-.status-item{
-    margin:4px 0;
-    font-size:13px;
-}
+#navHint{ margin-top:8px; font-size:12px; color:#fef3c7; }
 
 #help{
     margin-top:12px;
@@ -153,46 +163,178 @@ progress::-webkit-progress-value{
     font-size:12px;
     line-height:1.5;
 }
+
+#fullscreenBtn{
+    position:absolute;
+    top:16px;
+    right:16px;
+    width:44px;
+    height:44px;
+    border-radius:12px;
+    background:rgba(6, 12, 24, 0.82);
+    backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,0.2);
+    color:white;
+    cursor:pointer;
+    font-size:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:101;
+    box-shadow:0 8px 20px rgba(0,0,0,0.3);
+    transition: all 0.2s;
+}
+
+#fullscreenBtn:hover{ background:rgba(15, 25, 50, 0.95); transform: scale(1.05); }
+
+#actionHint{
+    position:absolute;
+    top:75%;
+    left:50%;
+    transform: translate(-50%, -50%);
+    background:rgba(6, 12, 24, 0.88);
+    padding:10px 20px;
+    border-radius:999px;
+    color:#fef3c7;
+    font-weight:600;
+    font-size:14px;
+    opacity:0;
+    transition: opacity 0.2s;
+    pointer-events:none;
+    z-index:50;
+    border:1px solid rgba(254,243,199,0.3);
+    white-space:nowrap;
+}
+
+#actionHint.show{ opacity:1; }
+
+#houseModal{
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,0.6);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:200;
+}
+
+#houseModal.show{ display:flex; }
+
+.house-content{
+    background:rgba(6, 12, 24, 0.95);
+    backdrop-filter:blur(14px);
+    padding:28px;
+    border-radius:20px;
+    border:1px solid rgba(255,255,255,0.15);
+    box-shadow:0 20px 50px rgba(0,0,0,0.5);
+    max-width:360px;
+    text-align:center;
+}
+
+.house-content h3{ margin-bottom:14px; font-size:20px; color:#fef3c7; }
+
+.house-content p{
+    font-size:14px;
+    color:#cbd5e1;
+    margin-bottom:18px;
+    line-height:1.5;
+}
+
+.house-buttons{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+
+.house-btn{
+    padding:10px 18px;
+    border-radius:10px;
+    border:1px solid rgba(255,255,255,0.2);
+    background:rgba(59, 130, 246, 0.25);
+    color:white;
+    cursor:pointer;
+    font-weight:600;
+    transition: all 0.2s;
+}
+
+.house-btn:hover{ background:rgba(59, 130, 246, 0.5); transform: translateY(-2px); }
+.house-btn.close{ background:rgba(255, 255, 255, 0.1); }
+
+.damage-number{
+    position:absolute;
+    font-weight:800;
+    font-size:20px;
+    pointer-events:none;
+    text-shadow: 0 0 6px rgba(0,0,0,0.8), 1px 1px 0 #000;
+    z-index:60;
+    animation: dmgFloat 1s ease-out forwards;
+}
+
+.damage-number.crit{
+    color:#fde047;
+    font-size:26px;
+    text-shadow: 0 0 8px rgba(255,220,0,0.8), 1px 1px 0 #000;
+}
+
+@keyframes dmgFloat{
+    0%{ transform: translateY(0); opacity:1; }
+    100%{ transform: translateY(-50px); opacity:0; }
+}
 </style>
 </head>
 <body>
 
-<div id="ui">
-
+<div id="ui" class="panel">
+    <button class="toggle-btn" data-target="ui" title="Sembunyikan">👁</button>
     <h2>🧙 Hero</h2>
-
     <div class="label">❤️ HP</div>
     <progress id="hpBar" max="100"></progress>
-
     <div class="label">⚡ Stamina</div>
     <progress id="staminaBar" max="100"></progress>
-
     <div class="label">🍖 Lapar</div>
     <progress id="hungerBar" max="100"></progress>
-
     <div class="label">🦴 Pegal</div>
     <progress id="painBar" max="100"></progress>
-
     <div id="status">
         <div>Penyakit : <span id="disease"></span></div>
         <div>Risiko : <span id="risk"></span></div>
+        <div>Level : <span id="level">1</span></div>
+        <div>EXP : <span id="exp">0</span>/<span id="expNext">100</span></div>
+        <div>Armor : <span id="armor">1</span></div>
+        <div>Serangan : <span id="attack">14</span></div>
         <div>Makanan : <span id="food"></span></div>
+        <div>Koin : <span id="coins">0</span></div>
     </div>
-
-    <div id="mapCard">
-        <div class="label">🗺️ Peta</div>
-        <div id="mapName">Peta</div>
-        <div id="mapHint">Area kecil sesuai lokasi kita</div>
-        <canvas id="minimap" width="220" height="140"></canvas>
-        <div id="navHint">Jalan utama terlihat, portal ungu di ujung kanan.</div>
-    </div>
-
     <div id="help">
         WASD = Bergerak<br>
         E = Makan<br>
-        Enter = Pindah Peta
+        Enter = Portal / Masuk Rumah<br>
+        Space = Serang Monster
     </div>
+</div>
+<button id="uiPeek" class="peek-btn" data-target="ui" title="Tampilkan Status">📊</button>
 
+<div id="mapPanel" class="panel">
+    <button class="toggle-btn" data-target="mapPanel" title="Sembunyikan">👁</button>
+    <div class="label">🗺️ Peta</div>
+    <div id="mapName">Peta</div>
+    <div id="mapHint">Area kecil sesuai lokasi kita</div>
+    <canvas id="minimap" width="220" height="140"></canvas>
+    <div id="navHint">Jalan utama terlihat, portal ungu di ujung kanan.</div>
+</div>
+<button id="mapPeek" class="peek-btn" data-target="mapPanel" title="Tampilkan Peta">🗺️</button>
+
+<button id="fullscreenBtn" title="Fullscreen">⛶</button>
+
+<div id="actionHint">Tekan Enter</div>
+
+<div id="houseModal">
+    <div class="house-content">
+        <h3>🏠 Di Dalam Rumah</h3>
+        <p>Tempat nyaman untuk beristirahat sejenak dari perjalananmu.</p>
+        <div class="house-buttons">
+            <button class="house-btn" id="restBtn">😴 Istirahat (Pulih)</button>
+            <button class="house-btn" id="eatBtn">🍲 Makan (−1)</button>
+            <button class="house-btn" id="armorBtn">🛡️ Upgrade Armor (−20💰)</button>
+            <button class="house-btn close" id="exitBtn">🚪 Keluar</button>
+        </div>
+    </div>
 </div>
 
 <canvas id="game"></canvas>
@@ -207,72 +349,52 @@ const hungerBar = document.getElementById("hungerBar");
 const painBar = document.getElementById("painBar");
 const disease = document.getElementById("disease");
 const risk = document.getElementById("risk");
-const food = document.getElementById("food");
+const levelEl = document.getElementById("level");
+const expEl = document.getElementById("exp");
+const expNextEl = document.getElementById("expNext");
+const armorEl = document.getElementById("armor");
+const attackEl = document.getElementById("attack");
+const foodEl = document.getElementById("food");
+const coinsEl = document.getElementById("coins");
 const mapName = document.getElementById("mapName");
 const mapHint = document.getElementById("mapHint");
 const minimap = document.getElementById("minimap");
 const minimapCtx = minimap.getContext("2d");
+const actionHint = document.getElementById("actionHint");
+const houseModal = document.getElementById("houseModal");
 
 const keys = {};
 const movementKeys = ["w", "a", "s", "d", "arrowup", "arrowleft", "arrowdown", "arrowright"];
 
 const maps = {
     small: {
-        id: "small",
-        name: "Kampung Kecil",
-        width: 1400,
-        height: 800,
-        description: "Area kecil sesuai lokasi kita dengan rumah, pohon, dan jalan sederhana.",
+        id: "small", name: "Kampung Kecil", width: 1400, height: 800,
+        description: "Area kecil dengan rumah, pohon, dan jalan sederhana.",
         portal: { x: 1310, y: 350, w: 36, h: 54 },
+        portalTo: "large",
         spawn: { x: 520, y: 240 },
+        monsterSpawn: { x: 1000, y: 500 },
         houses: [
-            { x: 120, y: 140, w: 180, h: 120 },
-            { x: 860, y: 320, w: 180, h: 120 }
+            { x: 120, y: 140, w: 180, h: 120, doorX: 210, doorY: 260 },
+            { x: 860, y: 320, w: 180, h: 120, doorX: 950, doorY: 440 }
         ],
-        trees: [
-            { x: 180, y: 180 },
-            { x: 320, y: 620 },
-            { x: 720, y: 220 },
-            { x: 1030, y: 320 },
-            { x: 1220, y: 520 }
-        ],
-        rocks: [
-            { x: 500, y: 400 },
-            { x: 860, y: 250 },
-            { x: 1120, y: 650 }
-        ]
+        trees: [ { x: 180, y: 180 }, { x: 320, y: 620 }, { x: 720, y: 220 }, { x: 1030, y: 320 }, { x: 1220, y: 520 } ],
+        rocks: [ { x: 500, y: 400 }, { x: 860, y: 250 }, { x: 1120, y: 650 } ]
     },
     large: {
-        id: "large",
-        name: "Wilayah Luas",
-        width: 2400,
-        height: 1300,
-        description: "Area besar yang bisa dijelajahi dengan suasana padang, hutan, dan gunung.",
+        id: "large", name: "Wilayah Luas", width: 2400, height: 1300,
+        description: "Area besar padang, hutan, dan gunung yang luas.",
         portal: { x: 30, y: 560, w: 36, h: 54 },
+        portalTo: "small",
         spawn: { x: 2200, y: 600 },
+        monsterSpawn: { x: 1500, y: 280 },
         houses: [
-            { x: 240, y: 300, w: 170, h: 120 },
-            { x: 1720, y: 850, w: 200, h: 140 }
+            { x: 240, y: 300, w: 170, h: 120, doorX: 325, doorY: 420 },
+            { x: 1720, y: 850, w: 200, h: 140, doorX: 1820, doorY: 990 }
         ],
-        trees: [
-            { x: 350, y: 220 },
-            { x: 860, y: 760 },
-            { x: 1180, y: 420 },
-            { x: 1460, y: 260 },
-            { x: 1860, y: 520 },
-            { x: 2100, y: 900 }
-        ],
-        rocks: [
-            { x: 540, y: 430 },
-            { x: 1320, y: 600 },
-            { x: 1940, y: 280 },
-            { x: 2140, y: 240 }
-        ],
-        zones: [
-            { type: "padang", x: 0, y: 0, w: 800, h: 1300 },
-            { type: "hutan", x: 800, y: 0, w: 900, h: 1300 },
-            { type: "gunung", x: 1700, y: 0, w: 700, h: 1300 }
-        ],
+        trees: [ { x: 350, y: 220 }, { x: 860, y: 760 }, { x: 1180, y: 420 }, { x: 1460, y: 260 }, { x: 1860, y: 520 }, { x: 2100, y: 900 } ],
+        rocks: [ { x: 540, y: 430 }, { x: 1320, y: 600 }, { x: 1940, y: 280 }, { x: 2140, y: 240 } ],
+        zones: [ { type: "padang", x: 0, y: 0, w: 800, h: 1300 }, { type: "hutan", x: 800, y: 0, w: 900, h: 1300 }, { type: "gunung", x: 1700, y: 0, w: 700, h: 1300 } ],
         rivers: [{ x: 960, y: 180, w: 300, h: 720 }]
     }
 };
@@ -283,10 +405,10 @@ let camera = { x: 0, y: 0 };
 let portalCooldown = 0;
 let dayTime = 0;
 let lastTime = performance.now();
+let attackCooldown = 0;
+let isInHouse = false;
 
-function clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-}
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
@@ -314,119 +436,256 @@ canvas.addEventListener("mousedown", focusGame);
 canvas.addEventListener("touchstart", focusGame, { passive: true });
 
 function handleKeyDown(e) {
+    if (isInHouse) {
+        if (e.key === "Enter" || e.key === "Escape") exitHouse();
+        return;
+    }
     const key = e.key.toLowerCase();
-    if (movementKeys.includes(key) || key === "enter") e.preventDefault();
+    if (movementKeys.includes(key) || key === "enter" || key === " ") e.preventDefault();
     keys[key] = true;
 
     if (key === "e") {
         if (player.inventory.food > 0) {
             player.inventory.food--;
             player.hunger = Math.min(100, player.hunger + 30);
-            player.hp = Math.min(100, player.hp + 10);
+            player.hp = Math.min(player.maxHp, player.hp + 10);
+            showDamage(player.x, player.y, "+30 🍖", "#4ade80");
         }
     }
+
+    if (key === "u") {
+        if (player.inventory.coins >= 20) {
+            player.inventory.coins -= 20;
+            player.armor += 1;
+            refreshPlayerStats();
+            showDamage(player.x, player.y, "+1 Armor", "#60a5fa");
+        } else {
+            showDamage(player.x, player.y, "Butuh 20 koin!", "#f87171");
+        }
+    }
+
+    if (key === " ") tryAttack();
 }
 
-function handleKeyUp(e) {
-    keys[e.key.toLowerCase()] = false;
-}
+function handleKeyUp(e) { keys[e.key.toLowerCase()] = false; }
 
 document.addEventListener("keydown", handleKeyDown);
 document.addEventListener("keyup", handleKeyUp);
 
-window.addEventListener("blur", () => {
-    for (const key of Object.keys(keys)) keys[key] = false;
+window.addEventListener("blur", () => { for (const key of Object.keys(keys)) keys[key] = false; });
+
+// Panel toggle
+const panels = {
+    ui: { panel: document.getElementById("ui"), peek: document.getElementById("uiPeek") },
+    mapPanel: { panel: document.getElementById("mapPanel"), peek: document.getElementById("mapPeek") }
+};
+
+document.querySelectorAll(".toggle-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        const t = btn.dataset.target;
+        panels[t].panel.classList.add("hidden");
+        panels[t].peek.classList.add("show");
+    });
 });
 
+document.querySelectorAll(".peek-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        const t = btn.dataset.target;
+        panels[t].panel.classList.remove("hidden");
+        btn.classList.remove("show");
+    });
+});
+
+// Fullscreen
+document.getElementById("fullscreenBtn").addEventListener("click", async () => {
+    try {
+        if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+        else await document.exitFullscreen();
+    } catch(err) { console.log(err); }
+});
+
+// House modal
+document.getElementById("restBtn").addEventListener("click", () => {
+    player.hp = Math.min(player.maxHp, player.hp + 50);
+    player.stamina = 100;
+    player.pain = Math.max(0, player.pain - 40);
+    showDamage(player.x, player.y, "+50 HP", "#4ade80");
+    exitHouse();
+});
+
+document.getElementById("eatBtn").addEventListener("click", () => {
+    if (player.inventory.food > 0) {
+        player.inventory.food--;
+        player.hunger = Math.min(100, player.hunger + 50);
+        player.hp = Math.min(player.maxHp, player.hp + 15);
+        showDamage(player.x, player.y, "+50 🍖", "#4ade80");
+    } else {
+        showDamage(player.x, player.y, "Tidak ada makanan!", "#f87171");
+    }
+});
+
+document.getElementById("armorBtn").addEventListener("click", () => {
+    if (player.inventory.coins >= 20) {
+        player.inventory.coins -= 20;
+        player.armor += 1;
+        refreshPlayerStats();
+        showDamage(player.x, player.y, "+1 Armor", "#60a5fa");
+        exitHouse();
+    } else {
+        showDamage(player.x, player.y, "Butuh 20 koin!", "#f87171");
+    }
+});
+
+document.getElementById("exitBtn").addEventListener("click", exitHouse);
+
+function exitHouse() {
+    isInHouse = false;
+    houseModal.classList.remove("show");
+    focusGame();
+}
+
+function enterHouse() {
+    isInHouse = true;
+    houseModal.classList.add("show");
+}
+
+function showDamage(worldX, worldY, text, color) {
+    const el = document.createElement("div");
+    el.className = "damage-number";
+    if (text.startsWith("CRIT")) el.classList.add("crit");
+    el.innerText = text;
+    el.style.color = color || "#fecaca";
+    el.style.left = (worldX - camera.x) + "px";
+    el.style.top = (worldY - camera.y) + "px";
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+}
+
 const player = {
-    x: maps.small.spawn.x,
-    y: maps.small.spawn.y,
-    size: 34,
-    speed: 2.8,
-    hp: 100,
-    stamina: 100,
-    hunger: 100,
-    pain: 0,
-    disease: "Sehat",
-    direction: 0,
-    walkCycle: 0,
-    isMoving: false,
-    inventory: { food: 5 }
+    x: maps.small.spawn.x, y: maps.small.spawn.y, size: 34, speed: 2.8,
+    hp: 100, maxHp: 100, stamina: 100, hunger: 100, pain: 0, disease: "Sehat",
+    direction: 0, walkCycle: 0, isMoving: false,
+    level: 1, exp: 0, expToNext: 100, armor: 1, attack: 14,
+    inventory: { food: 5, coins: 0 }
 };
 
-const monster = {
-    x: 1000,
-    y: 500,
-    size: 42,
-    hp: 50
-};
+const monster = { x: 1000, y: 500, size: 42, hp: 50, maxHp: 50, alive: true };
 
 window.__gameState = {
     getPlayer: () => ({ x: player.x, y: player.y, isMoving: player.isMoving, direction: player.direction })
 };
 
+function refreshPlayerStats() {
+    player.attack = 12 + player.level * 2;
+    player.maxHp = 100 + (player.level - 1) * 12 + (player.armor - 1) * 10;
+    player.hp = Math.min(player.maxHp, player.hp);
+}
+
+function gainExp(amount) {
+    player.exp += amount;
+    while (player.exp >= player.expToNext) {
+        player.exp -= player.expToNext;
+        player.level += 1;
+        player.expToNext = Math.round(player.expToNext * 1.35);
+        refreshPlayerStats();
+        player.hp = player.maxHp;
+        player.stamina = 100;
+        showDamage(player.x, player.y, `Level ${player.level}!`, "#fde047");
+    }
+}
+
 function placeMonsterForMap() {
-    if (currentMapId === "small") {
-        monster.x = 1000;
-        monster.y = 500;
+    const spawn = currentMap.monsterSpawn || (currentMapId === "small" ? { x: 1000, y: 500 } : { x: 1500, y: 280 });
+    monster.alive = true;
+    monster.maxHp = 45 + (currentMapId === "large" ? 20 : 0) + (player.level - 1) * 5;
+    monster.hp = monster.maxHp;
+    monster.x = spawn.x;
+    monster.y = spawn.y;
+}
+
+function tryAttack() {
+    if (!monster.alive || attackCooldown > 0) return;
+    const dx = player.x - monster.x, dy = player.y - monster.y;
+    const distance = Math.hypot(dx, dy);
+    attackCooldown = 0.5;
+    if (distance < 80) {
+        const isCrit = Math.random() < 0.2;
+        const damage = (isCrit ? player.attack + 8 : player.attack);
+        monster.hp -= damage;
+        showDamage(monster.x, monster.y - 20, isCrit ? "CRIT " + damage : "-" + damage, isCrit ? "#fde047" : "#fecaca");
+        if (monster.hp <= 0) {
+            monster.alive = false;
+            const rewardFood = 2 + (Math.random() < 0.5 ? 1 : 0);
+            const rewardCoins = 10 + player.level * 2;
+            player.inventory.food += rewardFood;
+            player.inventory.coins += rewardCoins;
+            gainExp(25 + (currentMapId === "large" ? 10 : 0));
+            showDamage(monster.x, monster.y, `+${rewardFood}🍖 +${rewardCoins}💰`, "#4ade80");
+            setTimeout(placeMonsterForMap, 6000);
+        }
     } else {
-        monster.x = 1500;
-        monster.y = 280;
+        showDamage(player.x, player.y, "Terlalu jauh!", "#f87171");
     }
 }
 
 function collidesWithObstacle(x, y, size) {
-    if (x < 0 || y < 0 || x + size > currentMap.width || y + size > currentMap.height) {
-        return true;
-    }
+    if (x < 0 || y < 0 || x + size > currentMap.width || y + size > currentMap.height) return true;
 
     for (const house of currentMap.houses) {
-        if (x + size > house.x && x < house.x + house.w && y + size > house.y && y < house.y + house.h) {
-            return true;
-        }
+        const doorX = house.x + house.w / 2 - 20;
+        const doorY = house.y + house.h - 10;
+        const nearDoor = (x + size > doorX && x < doorX + 40 && y + size > doorY - 10 && y < doorY + 10);
+        if (!nearDoor && x + size > house.x && x < house.x + house.w && y + size > house.y && y < house.y + house.h) return true;
     }
 
     for (const tree of currentMap.trees) {
         const dx = (x + size / 2) - (tree.x + 5);
         const dy = (y + size / 2) - (tree.y + 18);
-        if (Math.hypot(dx, dy) < 28 + size / 2) {
-            return true;
-        }
+        if (Math.hypot(dx, dy) < 28 + size / 2) return true;
     }
 
     for (const rock of currentMap.rocks) {
         const dx = (x + size / 2) - rock.x;
         const dy = (y + size / 2) - rock.y;
-        if (Math.hypot(dx, dy) < 24 + size / 2) {
-            return true;
-        }
+        if (Math.hypot(dx, dy) < 24 + size / 2) return true;
     }
-
     return false;
 }
 
 function switchMap() {
-    currentMapId = currentMapId === "small" ? "large" : "small";
+    const nextMapId = currentMap.portalTo || (currentMapId === "small" ? "large" : "small");
+    currentMapId = nextMapId;
     currentMap = maps[currentMapId];
     player.x = currentMap.spawn.x;
     player.y = currentMap.spawn.y;
     placeMonsterForMap();
     updateCamera();
+    actionHint.classList.remove("show");
+    showDamage(player.x, player.y, currentMap.name, "#fef3c7");
 }
 
 function isNearPortal() {
-    const portal = currentMap.portal;
-    const px = player.x + player.size / 2;
-    const py = player.y + player.size / 2;
-    const cx = portal.x + portal.w / 2;
-    const cy = portal.y + portal.h / 2;
+    const p = currentMap.portal;
+    const px = player.x + player.size / 2, py = player.y + player.size / 2;
+    const cx = p.x + p.w / 2, cy = p.y + p.h / 2;
     return Math.hypot(px - cx, py - cy) < 90;
 }
 
-function updatePlayer(dt) {
-    let moveX = 0;
-    let moveY = 0;
+function nearHouseDoor() {
+    for (const house of currentMap.houses) {
+        const doorX = house.doorX ?? (house.x + house.w / 2);
+        const doorY = house.doorY ?? (house.y + house.h);
+        const px = player.x + player.size / 2, py = player.y + player.size / 2;
+        const dist = Math.hypot(px - doorX, py - doorY);
+        if (dist < 90) return house;
+    }
+    return null;
+}
 
+function updatePlayer(dt) {
+    if (isInHouse) return;
+
+    let moveX = 0, moveY = 0;
     if (keys["w"] || keys["arrowup"]) moveY -= 1;
     if (keys["s"] || keys["arrowdown"]) moveY += 1;
     if (keys["a"] || keys["arrowleft"]) moveX -= 1;
@@ -436,26 +695,18 @@ function updatePlayer(dt) {
 
     if (player.isMoving) {
         const len = Math.hypot(moveX, moveY) || 1;
-        moveX /= len;
-        moveY /= len;
-
+        moveX /= len; moveY /= len;
         player.direction = Math.atan2(moveY, moveX);
         player.walkCycle += 0.25 * dt;
 
         let currentSpeed = player.speed * 1.25;
-        if (player.stamina <= 20) {
-            currentSpeed *= 0.7;
-        }
+        if (player.stamina <= 20) currentSpeed *= 0.7;
 
         const nextX = player.x + moveX * currentSpeed * dt;
         const nextY = player.y + moveY * currentSpeed * dt;
 
-        if (!collidesWithObstacle(nextX, player.y, player.size)) {
-            player.x = nextX;
-        }
-        if (!collidesWithObstacle(player.x, nextY, player.size)) {
-            player.y = nextY;
-        }
+        if (!collidesWithObstacle(nextX, player.y, player.size)) player.x = nextX;
+        if (!collidesWithObstacle(player.x, nextY, player.size)) player.y = nextY;
 
         player.stamina = Math.max(0, player.stamina - 0.08 * dt);
         player.hunger = Math.max(0, player.hunger - 0.03 * dt);
@@ -465,35 +716,45 @@ function updatePlayer(dt) {
     }
 
     player.stamina = Math.min(100, player.stamina + 0.03 * dt);
-    player.hunger = Math.max(0, player.hunger);
     player.pain = Math.min(100, player.pain);
 
-    if (player.hunger < 20) {
-        player.speed = 2.1;
-    } else if (player.pain > 80) {
-        player.speed = 1.4;
-    } else {
-        player.speed = 2.8;
-    }
+    if (player.hunger < 20) player.speed = 2.1;
+    else if (player.pain > 80) player.speed = 1.4;
+    else player.speed = 2.8;
 
-    if (player.hunger <= 0) {
-        player.hp -= 0.04 * dt;
-    }
+    if (player.hunger <= 0) player.hp -= 0.04 * dt;
 
     player.hp = Math.max(0, player.hp);
     player.x = clamp(player.x, 0, currentMap.width - player.size);
     player.y = clamp(player.y, 0, currentMap.height - player.size);
 
     portalCooldown = Math.max(0, portalCooldown - dt * 0.06);
-    if (keys["enter"] && portalCooldown <= 0 && isNearPortal()) {
-        switchMap();
-        portalCooldown = 0.8;
+    attackCooldown = Math.max(0, attackCooldown - dt * 0.06);
+
+    const house = nearHouseDoor();
+
+    if (keys["enter"] && portalCooldown <= 0) {
+        if (isNearPortal()) {
+            switchMap();
+            portalCooldown = 0.8;
+        } else if (house) {
+            enterHouse();
+            portalCooldown = 0.8;
+        }
     }
+
+    let hintText = "";
+    if (isNearPortal()) hintText = "🌀 Tekan Enter untuk pindah peta";
+    else if (house) hintText = "🚪 Tekan Enter untuk masuk rumah";
+    else if (monster.alive && Math.hypot(player.x - monster.x, player.y - monster.y) < 80) hintText = "⚔️ Tekan Space untuk menyerang";
+
+    if (hintText) { actionHint.innerText = hintText; actionHint.classList.add("show"); }
+    else actionHint.classList.remove("show");
 }
 
 function updateMonster(dt) {
-    const dx = player.x - monster.x;
-    const dy = player.y - monster.y;
+    if (!monster.alive) return;
+    const dx = player.x - monster.x, dy = player.y - monster.y;
     const distance = Math.hypot(dx, dy);
 
     if (distance < 260) {
@@ -502,29 +763,23 @@ function updateMonster(dt) {
         monster.y += (dy / distance) * step;
     }
 
-    if (distance < 46) {
+    if (distance < 56) {
         player.hp -= 0.08 * dt;
+        showDamage(player.x, player.y, "-" + Math.max(1, Math.round(0.08 * dt * 10)), "#f87171");
     }
 }
 
 function diseaseSystem() {
-    if (player.hunger < 10 && player.pain > 70) {
-        player.disease = "Demam";
-        player.hp -= 0.03;
-    } else if (player.hp < 30) {
-        player.disease = "Kritis";
-    } else {
-        player.disease = "Sehat";
-    }
+    if (player.hunger < 10 && player.pain > 70) { player.disease = "Demam"; player.hp -= 0.03; }
+    else if (player.hp < 30) player.disease = "Kritis";
+    else player.disease = "Sehat";
 }
 
 function getRiskLevel() {
     let score = 0;
-
     if (player.hp < 50) score++;
     if (player.hunger < 30) score++;
     if (player.pain > 60) score++;
-
     if (score === 0) return "Normal";
     if (score === 1) return "Rendah";
     if (score === 2) return "Sedang";
@@ -566,20 +821,13 @@ function drawGround() {
         ctx.fillStyle = "rgba(96, 177, 84, 0.35)";
         ctx.fillRect(0, 0, map.width, map.height);
         map.zones.forEach((zone) => {
-            if (zone.type === "padang") {
-                ctx.fillStyle = "rgba(184, 230, 130, 0.35)";
-            } else if (zone.type === "hutan") {
-                ctx.fillStyle = "rgba(66, 128, 71, 0.32)";
-            } else {
-                ctx.fillStyle = "rgba(139, 148, 157, 0.35)";
-            }
+            if (zone.type === "padang") ctx.fillStyle = "rgba(184, 230, 130, 0.35)";
+            else if (zone.type === "hutan") ctx.fillStyle = "rgba(66, 128, 71, 0.32)";
+            else ctx.fillStyle = "rgba(139, 148, 157, 0.35)";
             ctx.fillRect(zone.x, zone.y, zone.w, zone.h);
         });
-
         ctx.fillStyle = "rgba(88, 144, 255, 0.45)";
-        map.rivers.forEach((river) => {
-            ctx.fillRect(river.x, river.y, river.w, river.h);
-        });
+        map.rivers.forEach((river) => ctx.fillRect(river.x, river.y, river.w, river.h));
     }
 }
 
@@ -598,8 +846,14 @@ function drawMapObjects() {
         ctx.fillRect(0, 0, house.w, house.h);
         ctx.fillStyle = "#c96d3d";
         ctx.fillRect(8, -26, house.w - 16, 36);
+        ctx.fillStyle = "#4b2e1f";
+        ctx.fillRect(house.w / 2 - 12, house.h - 36, 24, 36);
         ctx.fillStyle = "#fef3c7";
-        ctx.fillRect(house.w * 0.4, house.h * 0.65, 24, 36);
+        ctx.fillRect(house.w / 2 - 8, house.h - 32, 16, 28);
+        ctx.fillStyle = "#fbbf24";
+        ctx.beginPath();
+        ctx.arc(house.w / 2 + 5, house.h - 18, 2, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
     });
 
@@ -627,27 +881,54 @@ function drawMapObjects() {
         ctx.shadowBlur = 5;
         ctx.fillStyle = "#7a7f86";
         ctx.beginPath();
-        ctx.moveTo(-16, 8);
-        ctx.lineTo(-6, -16);
-        ctx.lineTo(12, -12);
-        ctx.lineTo(18, 6);
-        ctx.lineTo(6, 16);
+        ctx.moveTo(-16, 8); ctx.lineTo(-6, -16); ctx.lineTo(12, -12);
+        ctx.lineTo(18, 6); ctx.lineTo(6, 16);
         ctx.closePath();
         ctx.fill();
         ctx.restore();
     });
 
     const portal = currentMap.portal;
+    const glow = 8 + Math.sin(dayTime * 3) * 4;
     ctx.save();
     ctx.translate(portal.x, portal.y);
+    const grad = ctx.createRadialGradient(portal.w/2, portal.h/2, 0, portal.w/2, portal.h/2, 40 + glow);
+    grad.addColorStop(0, "rgba(168, 85, 247, 0.6)");
+    grad.addColorStop(1, "rgba(168, 85, 247, 0)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(-30, -30, portal.w + 60, portal.h + 60);
+
     ctx.fillStyle = "#7c3aed";
     ctx.fillRect(0, 0, portal.w, portal.h);
     ctx.fillStyle = "#c4b5fd";
     ctx.fillRect(8, 8, portal.w - 16, portal.h - 16);
+
+    ctx.strokeStyle = "rgba(255,255,255,0.5)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i < 3; i++) {
+        const angle = dayTime * 2 + i * Math.PI * 2 / 3;
+        const r = 8;
+        ctx.moveTo(portal.w/2 + Math.cos(angle) * r, portal.h/2 + Math.sin(angle) * r * 2);
+        ctx.lineTo(portal.w/2 + Math.cos(angle + 1) * r * 0.6, portal.h/2 + Math.sin(angle + 1) * r * 1.2);
+    }
+    ctx.stroke();
     ctx.restore();
 }
 
 function drawMonster() {
+    if (!monster.alive) {
+        ctx.save();
+        ctx.translate(monster.x, monster.y);
+        ctx.fillStyle = "#6b7280";
+        ctx.fillRect(15, 15, 12, 15);
+        ctx.fillRect(12, 12, 18, 6);
+        ctx.fillStyle = "#374151";
+        ctx.font = "10px sans-serif";
+        ctx.fillText("RIP", 14, 24);
+        ctx.restore();
+        return;
+    }
     const bob = Math.sin(dayTime * 4) * 3;
 
     ctx.save();
@@ -670,6 +951,12 @@ function drawMonster() {
     ctx.beginPath();
     ctx.arc(20, 24, 8, 0.1, Math.PI - 0.1);
     ctx.stroke();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(0, -10, 40, 5);
+    ctx.fillStyle = "#ef4444";
+    ctx.fillRect(0, -10, 40 * (monster.hp / monster.maxHp), 5);
     ctx.restore();
 }
 
@@ -714,7 +1001,6 @@ function drawMiniMap() {
 
     minimapCtx.save();
     minimapCtx.scale(scale, scale);
-    minimapCtx.translate(0, 0);
 
     minimapCtx.fillStyle = currentMap.id === "small" ? "#4ade80" : "#64748b";
     minimapCtx.fillRect(0, 0, currentMap.width, currentMap.height);
@@ -722,14 +1008,17 @@ function drawMiniMap() {
     minimapCtx.fillStyle = "#fbbf24";
     minimapCtx.fillRect(0, currentMap.height * 0.56, currentMap.width, currentMap.height * 0.08);
     minimapCtx.fillStyle = "#1f2937";
-    currentMap.houses.forEach((house) => {
-        minimapCtx.fillRect(house.x, house.y, house.w, house.h);
-    });
+    currentMap.houses.forEach((house) => minimapCtx.fillRect(house.x, house.y, house.w, house.h));
 
     minimapCtx.fillStyle = currentMap.id === "small" ? "#3b82f6" : "#38bdf8";
     minimapCtx.fillRect(player.x, player.y, player.size, player.size);
     minimapCtx.fillStyle = "#a78bfa";
     minimapCtx.fillRect(currentMap.portal.x, currentMap.portal.y, currentMap.portal.w, currentMap.portal.h);
+
+    if (monster.alive) {
+        minimapCtx.fillStyle = "#ef4444";
+        minimapCtx.fillRect(monster.x, monster.y, monster.size, monster.size);
+    }
     minimapCtx.restore();
 }
 
@@ -738,10 +1027,15 @@ function updateUI() {
     staminaBar.value = player.stamina;
     hungerBar.value = player.hunger;
     painBar.value = player.pain;
-
     disease.innerText = player.disease;
     risk.innerText = getRiskLevel();
-    food.innerText = player.inventory.food;
+    levelEl.innerText = player.level;
+    expEl.innerText = player.exp;
+    expNextEl.innerText = player.expToNext;
+    armorEl.innerText = player.armor;
+    attackEl.innerText = player.attack;
+    foodEl.innerText = player.inventory.food;
+    coinsEl.innerText = player.inventory.coins;
     mapName.innerText = currentMap.name;
     mapHint.innerText = currentMap.description;
 }
@@ -760,7 +1054,6 @@ function draw() {
 function gameLoop(now) {
     const dt = Math.min((now - lastTime) / 16.67, 1.8);
     lastTime = now;
-
     dayTime += 0.002 * dt;
     updatePlayer(dt);
     updateMonster(dt);
@@ -768,7 +1061,6 @@ function gameLoop(now) {
     updateUI();
     draw();
     drawMiniMap();
-
     requestAnimationFrame(gameLoop);
 }
 
@@ -778,10 +1070,12 @@ setInterval(() => {
     if (player.stamina < 100) player.stamina = Math.min(100, player.stamina + 0.5);
 }, 5000);
 
+refreshPlayerStats();
 focusGame();
 placeMonsterForMap();
 resizeCanvas();
 updateCamera();
+updateUI();
 gameLoop(performance.now());
 </script>
 
