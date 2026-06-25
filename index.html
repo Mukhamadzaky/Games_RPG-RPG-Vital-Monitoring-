@@ -220,6 +220,31 @@ progress::-webkit-progress-value{ border-radius:999px; background:linear-gradien
 
 #houseModal.show{ display:flex; }
 
+#gameOverOverlay{
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,0.78);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:300;
+}
+
+#gameOverOverlay.show{ display:flex; }
+
+.game-over-card{
+    background:rgba(15, 23, 42, 0.95);
+    border:1px solid rgba(248, 113, 113, 0.45);
+    border-radius:20px;
+    padding:28px 34px;
+    text-align:center;
+    box-shadow:0 20px 50px rgba(0,0,0,0.45);
+}
+
+.game-over-card h2{ font-size:28px; color:#fecaca; margin-bottom:10px; }
+
+.game-over-card p{ color:#e2e8f0; margin-bottom:16px; }
+
 .house-content{
     background:rgba(6, 12, 24, 0.95);
     backdrop-filter:blur(14px);
@@ -301,6 +326,9 @@ progress::-webkit-progress-value{ border-radius:999px; background:linear-gradien
         <div>Makanan : <span id="food"></span></div>
         <div>Koin : <span id="coins">0</span></div>
     </div>
+    <div class="house-buttons" style="margin-top:12px;">
+        <button class="house-btn" id="attackBtn">⚔ Serang</button>
+    </div>
     <div id="help">
         WASD = Bergerak<br>
         E = Makan<br>
@@ -337,6 +365,14 @@ progress::-webkit-progress-value{ border-radius:999px; background:linear-gradien
     </div>
 </div>
 
+<div id="gameOverOverlay">
+    <div class="game-over-card">
+        <h2>💀 Game Over</h2>
+        <p>HPmu habis. Kamu dikembalikan ke lokasi awal.</p>
+        <button class="house-btn" id="restartBtn">🔄 Main Lagi</button>
+    </div>
+</div>
+
 <canvas id="game"></canvas>
 
 <script>
@@ -362,6 +398,7 @@ const minimap = document.getElementById("minimap");
 const minimapCtx = minimap.getContext("2d");
 const actionHint = document.getElementById("actionHint");
 const houseModal = document.getElementById("houseModal");
+const gameOverOverlay = document.getElementById("gameOverOverlay");
 
 const keys = {};
 const movementKeys = ["w", "a", "s", "d", "arrowup", "arrowleft", "arrowdown", "arrowright"];
@@ -496,51 +533,80 @@ document.querySelectorAll(".peek-btn").forEach(btn => {
     });
 });
 
-// Fullscreen
-document.getElementById("fullscreenBtn").addEventListener("click", async () => {
-    try {
-        if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
-        else await document.exitFullscreen();
-    } catch(err) { console.log(err); }
-});
+function bindEvents() {
+    document.getElementById("attackBtn").addEventListener("click", tryAttack);
+    document.getElementById("restartBtn").addEventListener("click", resetGame);
 
-// House modal
-document.getElementById("restBtn").addEventListener("click", () => {
-    player.hp = Math.min(player.maxHp, player.hp + 50);
-    player.stamina = 100;
-    player.pain = Math.max(0, player.pain - 40);
-    showDamage(player.x, player.y, "+50 HP", "#4ade80");
-    exitHouse();
-});
+    document.getElementById("fullscreenBtn").addEventListener("click", async () => {
+        try {
+            if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+            else await document.exitFullscreen();
+        } catch(err) { console.log(err); }
+    });
 
-document.getElementById("eatBtn").addEventListener("click", () => {
-    if (player.inventory.food > 0) {
-        player.inventory.food--;
-        player.hunger = Math.min(100, player.hunger + 50);
-        player.hp = Math.min(player.maxHp, player.hp + 15);
-        showDamage(player.x, player.y, "+50 🍖", "#4ade80");
-    } else {
-        showDamage(player.x, player.y, "Tidak ada makanan!", "#f87171");
-    }
-});
-
-document.getElementById("armorBtn").addEventListener("click", () => {
-    if (player.inventory.coins >= 20) {
-        player.inventory.coins -= 20;
-        player.armor += 1;
-        refreshPlayerStats();
-        showDamage(player.x, player.y, "+1 Armor", "#60a5fa");
+    document.getElementById("restBtn").addEventListener("click", () => {
+        player.hp = Math.min(player.maxHp, player.hp + 50);
+        player.stamina = 100;
+        player.pain = Math.max(0, player.pain - 40);
+        showDamage(player.x, player.y, "+50 HP", "#4ade80");
         exitHouse();
-    } else {
-        showDamage(player.x, player.y, "Butuh 20 koin!", "#f87171");
-    }
-});
+    });
 
-document.getElementById("exitBtn").addEventListener("click", exitHouse);
+    document.getElementById("eatBtn").addEventListener("click", () => {
+        if (player.inventory.food > 0) {
+            player.inventory.food--;
+            player.hunger = Math.min(100, player.hunger + 50);
+            player.hp = Math.min(player.maxHp, player.hp + 15);
+            showDamage(player.x, player.y, "+50 🍖", "#4ade80");
+        } else {
+            showDamage(player.x, player.y, "Tidak ada makanan!", "#f87171");
+        }
+    });
+
+    document.getElementById("armorBtn").addEventListener("click", () => {
+        if (player.inventory.coins >= 20) {
+            player.inventory.coins -= 20;
+            player.armor += 1;
+            refreshPlayerStats();
+            showDamage(player.x, player.y, "+1 Armor", "#60a5fa");
+            exitHouse();
+        } else {
+            showDamage(player.x, player.y, "Butuh 20 koin!", "#f87171");
+        }
+    });
+
+    document.getElementById("exitBtn").addEventListener("click", exitHouse);
+}
 
 function exitHouse() {
     isInHouse = false;
     houseModal.classList.remove("show");
+    focusGame();
+}
+
+function resetGame() {
+    player.x = maps.small.spawn.x;
+    player.y = maps.small.spawn.y;
+    player.hp = 100;
+    player.maxHp = 100;
+    player.stamina = 100;
+    player.hunger = 100;
+    player.pain = 0;
+    player.level = 1;
+    player.exp = 0;
+    player.expToNext = 100;
+    player.armor = 1;
+    player.attack = 14;
+    player.inventory.food = 5;
+    player.inventory.coins = 0;
+    currentMapId = "small";
+    currentMap = maps.small;
+    isInHouse = false;
+    houseModal.classList.remove("show");
+    gameOverOverlay.classList.remove("show");
+    placeMonsterForMap();
+    updateCamera();
+    updateUI();
     focusGame();
 }
 
@@ -773,6 +839,17 @@ function diseaseSystem() {
     if (player.hunger < 10 && player.pain > 70) { player.disease = "Demam"; player.hp -= 0.03; }
     else if (player.hp < 30) player.disease = "Kritis";
     else player.disease = "Sehat";
+}
+
+function checkGameOver() {
+    if (player.hp <= 0) {
+        player.hp = 0;
+        gameOverOverlay.classList.add("show");
+        isInHouse = false;
+        houseModal.classList.remove("show");
+        return true;
+    }
+    return false;
 }
 
 function getRiskLevel() {
@@ -1058,6 +1135,11 @@ function gameLoop(now) {
     updatePlayer(dt);
     updateMonster(dt);
     diseaseSystem();
+    if (checkGameOver()) {
+        draw();
+        drawMiniMap();
+        return;
+    }
     updateUI();
     draw();
     drawMiniMap();
@@ -1070,13 +1152,18 @@ setInterval(() => {
     if (player.stamina < 100) player.stamina = Math.min(100, player.stamina + 0.5);
 }, 5000);
 
-refreshPlayerStats();
-focusGame();
-placeMonsterForMap();
-resizeCanvas();
-updateCamera();
-updateUI();
-gameLoop(performance.now());
+function initGame() {
+    refreshPlayerStats();
+    bindEvents();
+    focusGame();
+    placeMonsterForMap();
+    resizeCanvas();
+    updateCamera();
+    updateUI();
+    gameLoop(performance.now());
+}
+
+initGame();
 </script>
 
 </body>
