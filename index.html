@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#09111f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
 <title>RPG Health Monitoring</title>
 
 <style>
@@ -15,6 +19,7 @@ body{
     color:white;
     touch-action:none;
     user-select:none;
+    overscroll-behavior:none;
 }
 
 canvas{
@@ -135,6 +140,7 @@ progress::-webkit-progress-value{ border-radius:999px; background:linear-gradien
 #hpBar::-webkit-progress-value{ background:linear-gradient(90deg, #ff5e62, #ff8f00); }
 #staminaBar::-webkit-progress-value{ background:linear-gradient(90deg, #38bdf8, #4f46e5); }
 #hungerBar::-webkit-progress-value{ background:linear-gradient(90deg, #f59e0b, #f97316); }
+#thirstBar::-webkit-progress-value{ background:linear-gradient(90deg, #2dd4bf, #0ea5e9); }
 #painBar::-webkit-progress-value{ background:linear-gradient(90deg, #8b5cf6, #ec4899); }
 
 #status{
@@ -164,7 +170,8 @@ progress::-webkit-progress-value{ border-radius:999px; background:linear-gradien
     line-height:1.5;
 }
 
-#fullscreenBtn{
+#fullscreenBtn,
+#notifyBtn{
     position:absolute;
     top:16px;
     right:16px;
@@ -185,7 +192,10 @@ progress::-webkit-progress-value{ border-radius:999px; background:linear-gradien
     transition: all 0.2s;
 }
 
-#fullscreenBtn:hover{ background:rgba(15, 25, 50, 0.95); transform: scale(1.05); }
+#notifyBtn{ right:70px; }
+
+#fullscreenBtn:hover,
+#notifyBtn:hover{ background:rgba(15, 25, 50, 0.95); transform: scale(1.05); }
 
 #actionHint{
     position:absolute;
@@ -301,6 +311,107 @@ progress::-webkit-progress-value{ border-radius:999px; background:linear-gradien
     0%{ transform: translateY(0); opacity:1; }
     100%{ transform: translateY(-50px); opacity:0; }
 }
+
+#mobileControls{
+    position:absolute;
+    left:16px;
+    bottom:18px;
+    z-index:90;
+    display:none;
+    align-items:flex-end;
+    justify-content:space-between;
+    width:min(260px, calc(100vw - 32px));
+    pointer-events:none;
+}
+
+.touch-pad,
+.touch-actions{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    pointer-events:auto;
+}
+
+.touch-pad {
+    flex-direction:column;
+}
+
+.touch-row {
+    display:flex;
+    gap:10px;
+}
+
+.touch-btn {
+    width:50px;
+    height:50px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.2);
+    background:rgba(15, 23, 42, 0.72);
+    color:white;
+    font-size:22px;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    touch-action:manipulation;
+    box-shadow:0 8px 22px rgba(0,0,0,0.22);
+    user-select:none;
+}
+
+.touch-btn:active {
+    transform:scale(0.96);
+    background:rgba(30, 41, 59, 0.9);
+}
+
+.touch-btn.action {
+    width:58px;
+    height:58px;
+    border-radius:18px;
+    background:rgba(37, 99, 235, 0.78);
+}
+
+@media (max-width: 768px) {
+    body {
+        overflow:hidden;
+        touch-action:none;
+    }
+
+    #ui {
+        top:12px;
+        left:12px;
+        width:min(280px, calc(100vw - 24px));
+        padding:12px 14px;
+    }
+
+    #mapPanel {
+        right:12px;
+        bottom:12px;
+        width:min(200px, calc(100vw - 24px));
+        padding:12px 12px 10px;
+    }
+
+    #uiPeek, #mapPeek {
+        display:none !important;
+    }
+
+    #fullscreenBtn,
+    #notifyBtn {
+        width:42px;
+        height:42px;
+        right:12px;
+    }
+
+    #notifyBtn { right:64px; }
+
+    #mobileControls {
+        display:flex;
+    }
+
+    #help {
+        font-size:11px;
+        line-height:1.35;
+    }
+}
 </style>
 </head>
 <body>
@@ -314,6 +425,8 @@ progress::-webkit-progress-value{ border-radius:999px; background:linear-gradien
     <progress id="staminaBar" max="100"></progress>
     <div class="label">🍖 Lapar</div>
     <progress id="hungerBar" max="100"></progress>
+    <div class="label">💧 Haus</div>
+    <progress id="thirstBar" max="100"></progress>
     <div class="label">🦴 Pegal</div>
     <progress id="painBar" max="100"></progress>
     <div id="status">
@@ -348,9 +461,27 @@ progress::-webkit-progress-value{ border-radius:999px; background:linear-gradien
 </div>
 <button id="mapPeek" class="peek-btn" data-target="mapPanel" title="Tampilkan Peta">🗺️</button>
 
+<button id="notifyBtn" title="Izinkan notifikasi">🔔</button>
 <button id="fullscreenBtn" title="Fullscreen">⛶</button>
 
 <div id="actionHint">Tekan Enter</div>
+
+<div id="mobileControls">
+    <div class="touch-pad">
+        <div class="touch-row">
+            <div class="touch-btn" data-move="w">▲</div>
+        </div>
+        <div class="touch-row">
+            <div class="touch-btn" data-move="a">◀</div>
+            <div class="touch-btn" data-move="s">▼</div>
+            <div class="touch-btn" data-move="d">▶</div>
+        </div>
+    </div>
+    <div class="touch-actions">
+        <div class="touch-btn action" id="mobileEatBtn" title="Makan">🍖</div>
+        <div class="touch-btn action" id="mobileAttackBtn" title="Serang">⚔</div>
+    </div>
+</div>
 
 <div id="houseModal">
     <div class="house-content">
@@ -382,6 +513,7 @@ const ctx = canvas.getContext("2d");
 const hpBar = document.getElementById("hpBar");
 const staminaBar = document.getElementById("staminaBar");
 const hungerBar = document.getElementById("hungerBar");
+const thirstBar = document.getElementById("thirstBar");
 const painBar = document.getElementById("painBar");
 const disease = document.getElementById("disease");
 const risk = document.getElementById("risk");
@@ -399,6 +531,7 @@ const minimapCtx = minimap.getContext("2d");
 const actionHint = document.getElementById("actionHint");
 const houseModal = document.getElementById("houseModal");
 const gameOverOverlay = document.getElementById("gameOverOverlay");
+const notifyBtn = document.getElementById("notifyBtn");
 
 const keys = {};
 const movementKeys = ["w", "a", "s", "d", "arrowup", "arrowleft", "arrowdown", "arrowright"];
@@ -406,7 +539,7 @@ const movementKeys = ["w", "a", "s", "d", "arrowup", "arrowleft", "arrowdown", "
 const maps = {
     small: {
         id: "small", name: "Kampung Kecil", width: 1400, height: 800,
-        description: "Area kecil dengan rumah, pohon, dan jalan sederhana.",
+        description: "Kampung yang rapi dengan jalan utama, rumah kayu, dan hamparan hijau.",
         portal: { x: 1310, y: 350, w: 36, h: 54 },
         portalTo: "large",
         spawn: { x: 520, y: 240 },
@@ -416,11 +549,20 @@ const maps = {
             { x: 860, y: 320, w: 180, h: 120, doorX: 950, doorY: 440 }
         ],
         trees: [ { x: 180, y: 180 }, { x: 320, y: 620 }, { x: 720, y: 220 }, { x: 1030, y: 320 }, { x: 1220, y: 520 } ],
-        rocks: [ { x: 500, y: 400 }, { x: 860, y: 250 }, { x: 1120, y: 650 } ]
+        rocks: [ { x: 500, y: 400 }, { x: 860, y: 250 }, { x: 1120, y: 650 } ],
+        bushes: [ { x: 260, y: 688 }, { x: 760, y: 640 }, { x: 1080, y: 590 } ],
+        flowers: [ { x: 170, y: 320 }, { x: 420, y: 365 }, { x: 940, y: 610 }, { x: 1200, y: 300 } ],
+        roads: [
+            { x: 140, y: 130, w: 980, h: 24 },
+            { x: 140, y: 154, w: 24, h: 420 },
+            { x: 400, y: 154, w: 24, h: 280 },
+            { x: 720, y: 154, w: 24, h: 360 },
+            { x: 1040, y: 154, w: 24, h: 260 }
+        ]
     },
     large: {
         id: "large", name: "Wilayah Luas", width: 2400, height: 1300,
-        description: "Area besar padang, hutan, dan gunung yang luas.",
+        description: "Padang luas, hutan lebat, dan pegunungan yang terasa luas dan menawan.",
         portal: { x: 30, y: 560, w: 36, h: 54 },
         portalTo: "small",
         spawn: { x: 2200, y: 600 },
@@ -431,8 +573,13 @@ const maps = {
         ],
         trees: [ { x: 350, y: 220 }, { x: 860, y: 760 }, { x: 1180, y: 420 }, { x: 1460, y: 260 }, { x: 1860, y: 520 }, { x: 2100, y: 900 } ],
         rocks: [ { x: 540, y: 430 }, { x: 1320, y: 600 }, { x: 1940, y: 280 }, { x: 2140, y: 240 } ],
+        bushes: [ { x: 560, y: 480 }, { x: 1080, y: 940 }, { x: 1600, y: 620 }, { x: 2020, y: 760 } ],
+        flowers: [ { x: 330, y: 540 }, { x: 980, y: 430 }, { x: 1640, y: 900 }, { x: 2180, y: 360 } ],
         zones: [ { type: "padang", x: 0, y: 0, w: 800, h: 1300 }, { type: "hutan", x: 800, y: 0, w: 900, h: 1300 }, { type: "gunung", x: 1700, y: 0, w: 700, h: 1300 } ],
-        rivers: [{ x: 960, y: 180, w: 300, h: 720 }]
+        rivers: [{ x: 960, y: 180, w: 300, h: 720 }],
+        roads: [
+            { points: [{ x: 80, y: 560 }, { x: 760, y: 530 }, { x: 1120, y: 570 }, { x: 1680, y: 540 }, { x: 2300, y: 620 }], width: 70 }
+        ]
     }
 };
 
@@ -444,6 +591,7 @@ let dayTime = 0;
 let lastTime = performance.now();
 let attackCooldown = 0;
 let isInHouse = false;
+let lastNotificationAt = 0;
 
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
@@ -536,6 +684,22 @@ document.querySelectorAll(".peek-btn").forEach(btn => {
 function bindEvents() {
     document.getElementById("attackBtn").addEventListener("click", tryAttack);
     document.getElementById("restartBtn").addEventListener("click", resetGame);
+    document.getElementById("mobileAttackBtn").addEventListener("click", tryAttack);
+    document.getElementById("mobileEatBtn").addEventListener("click", () => {
+        if (player.inventory.food > 0) {
+            player.inventory.food--;
+            player.hunger = Math.min(100, player.hunger + 50);
+            player.thirst = Math.min(100, player.thirst + 15);
+            player.hp = Math.min(player.maxHp, player.hp + 15);
+            showDamage(player.x, player.y, "+50 🍖", "#4ade80");
+        } else {
+            showDamage(player.x, player.y, "Tidak ada makanan!", "#f87171");
+        }
+    });
+
+    notifyBtn.addEventListener("click", async () => {
+        await requestNotificationPermission();
+    });
 
     document.getElementById("fullscreenBtn").addEventListener("click", async () => {
         try {
@@ -547,6 +711,7 @@ function bindEvents() {
     document.getElementById("restBtn").addEventListener("click", () => {
         player.hp = Math.min(player.maxHp, player.hp + 50);
         player.stamina = 100;
+        player.thirst = Math.min(100, player.thirst + 25);
         player.pain = Math.max(0, player.pain - 40);
         showDamage(player.x, player.y, "+50 HP", "#4ade80");
         exitHouse();
@@ -556,6 +721,7 @@ function bindEvents() {
         if (player.inventory.food > 0) {
             player.inventory.food--;
             player.hunger = Math.min(100, player.hunger + 50);
+            player.thirst = Math.min(100, player.thirst + 15);
             player.hp = Math.min(player.maxHp, player.hp + 15);
             showDamage(player.x, player.y, "+50 🍖", "#4ade80");
         } else {
@@ -576,6 +742,74 @@ function bindEvents() {
     });
 
     document.getElementById("exitBtn").addEventListener("click", exitHouse);
+
+    document.querySelectorAll("[data-move]").forEach((btn) => {
+        const key = btn.dataset.move;
+        const setKey = (value) => {
+            keys[key] = value;
+            if (key === "w" || key === "a" || key === "s" || key === "d") {
+                if (value) {
+                    btn.style.background = "rgba(96, 165, 250, 0.65)";
+                } else {
+                    btn.style.background = "rgba(15, 23, 42, 0.72)";
+                }
+            }
+        };
+
+        btn.addEventListener("pointerdown", (event) => {
+            event.preventDefault();
+            setKey(true);
+        });
+
+        btn.addEventListener("pointerup", () => setKey(false));
+        btn.addEventListener("pointerleave", () => setKey(false));
+        btn.addEventListener("pointercancel", () => setKey(false));
+    });
+}
+
+async function requestNotificationPermission() {
+    if (!("Notification" in window)) {
+        showDamage(player.x, player.y, "Notif tidak didukung", "#fbbf24");
+        return false;
+    }
+
+    if (Notification.permission === "granted") {
+        showDamage(player.x, player.y, "Notifikasi aktif", "#4ade80");
+        return true;
+    }
+
+    const result = await Notification.requestPermission();
+    if (result === "granted") {
+        showDamage(player.x, player.y, "🔔 Notifikasi siap", "#4ade80");
+        return true;
+    }
+
+    showDamage(player.x, player.y, "Notifikasi dibatalkan", "#fbbf24");
+    return false;
+}
+
+function maybeTriggerEmergencyNotification() {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    if (document.visibilityState === "visible" && document.hasFocus()) return;
+
+    const isCritical = player.hunger < 20 || player.thirst < 20 || player.hp < 35 || player.pain > 75;
+    if (!isCritical) return;
+
+    const now = Date.now();
+    if (now - lastNotificationAt < 30000) return;
+    lastNotificationAt = now;
+
+    const notification = new Notification("Karakter butuh perhatian!", {
+        body: `HP ${Math.round(player.hp)}% • Lapar ${Math.round(player.hunger)}% • Haus ${Math.round(player.thirst)}% • Kondisi ${player.disease}`,
+        tag: "rpg-health-alert"
+    });
+
+    notification.onclick = () => {
+        window.focus();
+        if (document.visibilityState === "hidden") {
+            window.location.reload();
+        }
+    };
 }
 
 function exitHouse() {
@@ -591,6 +825,7 @@ function resetGame() {
     player.maxHp = 100;
     player.stamina = 100;
     player.hunger = 100;
+    player.thirst = 100;
     player.pain = 0;
     player.level = 1;
     player.exp = 0;
@@ -629,7 +864,7 @@ function showDamage(worldX, worldY, text, color) {
 
 const player = {
     x: maps.small.spawn.x, y: maps.small.spawn.y, size: 34, speed: 2.8,
-    hp: 100, maxHp: 100, stamina: 100, hunger: 100, pain: 0, disease: "Sehat",
+    hp: 100, maxHp: 100, stamina: 100, hunger: 100, thirst: 100, pain: 0, disease: "Sehat",
     direction: 0, walkCycle: 0, isMoving: false,
     level: 1, exp: 0, expToNext: 100, armor: 1, attack: 14,
     inventory: { food: 5, coins: 0 }
@@ -767,6 +1002,7 @@ function updatePlayer(dt) {
 
         let currentSpeed = player.speed * 1.25;
         if (player.stamina <= 20) currentSpeed *= 0.7;
+        if (player.thirst < 20) currentSpeed *= 0.8;
 
         const nextX = player.x + moveX * currentSpeed * dt;
         const nextY = player.y + moveY * currentSpeed * dt;
@@ -776,6 +1012,7 @@ function updatePlayer(dt) {
 
         player.stamina = Math.max(0, player.stamina - 0.08 * dt);
         player.hunger = Math.max(0, player.hunger - 0.03 * dt);
+        player.thirst = Math.max(0, player.thirst - 0.045 * dt);
         player.pain = Math.min(100, player.pain + 0.015 * dt);
     } else {
         player.walkCycle = 0;
@@ -785,10 +1022,13 @@ function updatePlayer(dt) {
     player.pain = Math.min(100, player.pain);
 
     if (player.hunger < 20) player.speed = 2.1;
+    else if (player.thirst < 20) player.speed = 2.1;
     else if (player.pain > 80) player.speed = 1.4;
     else player.speed = 2.8;
 
-    if (player.hunger <= 0) player.hp -= 0.04 * dt;
+    if (player.hunger <= 0 || player.thirst <= 0) player.hp -= 0.04 * dt;
+    if (player.thirst < 25) player.hp -= 0.025 * dt;
+    if (player.hunger < 25) player.hp -= 0.015 * dt;
 
     player.hp = Math.max(0, player.hp);
     player.x = clamp(player.x, 0, currentMap.width - player.size);
@@ -836,8 +1076,10 @@ function updateMonster(dt) {
 }
 
 function diseaseSystem() {
-    if (player.hunger < 10 && player.pain > 70) { player.disease = "Demam"; player.hp -= 0.03; }
+    if (player.hunger < 10 && player.thirst < 15 && player.pain > 70) { player.disease = "Demam"; player.hp -= 0.03; }
+    else if (player.thirst < 15 && player.pain > 60) { player.disease = "Dehidrasi"; player.hp -= 0.02; }
     else if (player.hp < 30) player.disease = "Kritis";
+    else if (player.hunger < 20 || player.thirst < 20) player.disease = "Lemah";
     else player.disease = "Sehat";
 }
 
@@ -856,10 +1098,12 @@ function getRiskLevel() {
     let score = 0;
     if (player.hp < 50) score++;
     if (player.hunger < 30) score++;
+    if (player.thirst < 30) score++;
     if (player.pain > 60) score++;
     if (score === 0) return "Normal";
     if (score === 1) return "Rendah";
     if (score === 2) return "Sedang";
+    if (score === 3) return "Berbahaya";
     return "Tinggi";
 }
 
@@ -880,20 +1124,18 @@ function drawGround() {
     ctx.fillRect(0, 0, map.width, map.height);
 
     if (map.id === "small") {
-        ctx.fillStyle = "rgba(120, 200, 80, 0.28)";
+        ctx.fillStyle = "rgba(88, 176, 92, 0.32)";
         ctx.fillRect(0, map.height * 0.72, map.width, map.height * 0.28);
         ctx.fillStyle = "#d8b36b";
         ctx.fillRect(0, map.height * 0.56, map.width, map.height * 0.08);
         ctx.fillStyle = "#c9a74b";
-        ctx.fillRect(140, 130, 980, 24);
-        ctx.fillRect(140, 154, 24, 420);
-        ctx.fillRect(400, 154, 24, 280);
-        ctx.fillRect(720, 154, 24, 360);
-        ctx.fillRect(1040, 154, 24, 260);
-        ctx.fillStyle = "rgba(255, 240, 170, 0.65)";
+        map.roads.forEach((road) => ctx.fillRect(road.x, road.y, road.w, road.h));
+        ctx.fillStyle = "rgba(255, 244, 186, 0.5)";
         ctx.beginPath();
         ctx.arc(map.width - 180, 120, 55 + Math.sin(dayTime * 0.8) * 6, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.18)";
+        ctx.fillRect(100, 100, 1040, 500);
     } else {
         ctx.fillStyle = "rgba(96, 177, 84, 0.35)";
         ctx.fillRect(0, 0, map.width, map.height);
@@ -903,34 +1145,87 @@ function drawGround() {
             else ctx.fillStyle = "rgba(139, 148, 157, 0.35)";
             ctx.fillRect(zone.x, zone.y, zone.w, zone.h);
         });
+
+        map.roads.forEach((road) => {
+            ctx.strokeStyle = "#d6b16a";
+            ctx.lineWidth = road.width;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.beginPath();
+            road.points.forEach((point, index) => {
+                if (index === 0) ctx.moveTo(point.x, point.y);
+                else ctx.lineTo(point.x, point.y);
+            });
+            ctx.stroke();
+
+            ctx.strokeStyle = "rgba(255,255,255,0.24)";
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            road.points.forEach((point, index) => {
+                if (index === 0) ctx.moveTo(point.x, point.y);
+                else ctx.lineTo(point.x, point.y);
+            });
+            ctx.stroke();
+        });
+
         ctx.fillStyle = "rgba(88, 144, 255, 0.45)";
         map.rivers.forEach((river) => ctx.fillRect(river.x, river.y, river.w, river.h));
     }
 }
 
-function drawMapObjects() {
-    if (currentMap.id === "small") {
-        ctx.fillStyle = "rgba(255,255,255,0.15)";
-        ctx.fillRect(90, 110, 1040, 500);
-    }
+function drawBush(x, y, scale = 1) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = "#2f6f3b";
+    ctx.beginPath();
+    ctx.arc(0, 0, 16, 0, Math.PI * 2);
+    ctx.arc(12, -6, 13, 0, Math.PI * 2);
+    ctx.arc(-12, -4, 13, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+}
 
-    currentMap.houses.forEach((house) => {
+function drawFlower(x, y, scale = 1) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = "#fb7185";
+    ctx.beginPath();
+    ctx.arc(0, 0, 4, 0, Math.PI * 2);
+    ctx.arc(6, -2, 3.5, 0, Math.PI * 2);
+    ctx.arc(-6, -2, 3.5, 0, Math.PI * 2);
+    ctx.arc(0, 6, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fde68a";
+    ctx.fillRect(-1, -1, 2, 8);
+    ctx.restore();
+}
+
+function drawMapObjects() {
+    currentMap.houses.forEach((house, index) => {
         ctx.save();
         ctx.translate(house.x, house.y);
         ctx.shadowColor = "rgba(0,0,0,0.22)";
-        ctx.shadowBlur = 6;
-        ctx.fillStyle = "#8b5e3c";
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = index % 2 === 0 ? "#8b5e3c" : "#a16207";
         ctx.fillRect(0, 0, house.w, house.h);
-        ctx.fillStyle = "#c96d3d";
-        ctx.fillRect(8, -26, house.w - 16, 36);
-        ctx.fillStyle = "#4b2e1f";
+        ctx.fillStyle = index % 2 === 0 ? "#c96d3d" : "#d97706";
+        ctx.beginPath();
+        ctx.moveTo(-8, 0);
+        ctx.lineTo(house.w / 2, -36);
+        ctx.lineTo(house.w + 8, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#fef3c7";
+        ctx.fillRect(18, 20, house.w - 36, house.h - 44);
+        ctx.fillStyle = "#1f2937";
         ctx.fillRect(house.w / 2 - 12, house.h - 36, 24, 36);
         ctx.fillStyle = "#fef3c7";
         ctx.fillRect(house.w / 2 - 8, house.h - 32, 16, 28);
         ctx.fillStyle = "#fbbf24";
-        ctx.beginPath();
-        ctx.arc(house.w / 2 + 5, house.h - 18, 2, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillRect(30, 30, 10, 10);
+        ctx.fillRect(house.w - 40, 30, 10, 10);
         ctx.restore();
     });
 
@@ -964,6 +1259,9 @@ function drawMapObjects() {
         ctx.fill();
         ctx.restore();
     });
+
+    (currentMap.bushes || []).forEach((bush) => drawBush(bush.x, bush.y, 1));
+    (currentMap.flowers || []).forEach((flower) => drawFlower(flower.x, flower.y, 1));
 
     const portal = currentMap.portal;
     const glow = 8 + Math.sin(dayTime * 3) * 4;
@@ -1082,8 +1380,31 @@ function drawMiniMap() {
     minimapCtx.fillStyle = currentMap.id === "small" ? "#4ade80" : "#64748b";
     minimapCtx.fillRect(0, 0, currentMap.width, currentMap.height);
 
+    if (currentMap.zones) {
+        currentMap.zones.forEach((zone) => {
+            if (zone.type === "padang") minimapCtx.fillStyle = "rgba(184, 230, 130, 0.45)";
+            else if (zone.type === "hutan") minimapCtx.fillStyle = "rgba(66, 128, 71, 0.5)";
+            else minimapCtx.fillStyle = "rgba(139, 148, 157, 0.5)";
+            minimapCtx.fillRect(zone.x, zone.y, zone.w, zone.h);
+        });
+    }
+
     minimapCtx.fillStyle = "#fbbf24";
-    minimapCtx.fillRect(0, currentMap.height * 0.56, currentMap.width, currentMap.height * 0.08);
+    (currentMap.roads || []).forEach((road) => {
+        if (road.points) {
+            minimapCtx.strokeStyle = "#fbbf24";
+            minimapCtx.lineWidth = Math.max(4, road.width / 8);
+            minimapCtx.lineCap = "round";
+            minimapCtx.beginPath();
+            road.points.forEach((point, index) => {
+                if (index === 0) minimapCtx.moveTo(point.x, point.y);
+                else minimapCtx.lineTo(point.x, point.y);
+            });
+            minimapCtx.stroke();
+        } else {
+            minimapCtx.fillRect(road.x, road.y, road.w, road.h);
+        }
+    });
     minimapCtx.fillStyle = "#1f2937";
     currentMap.houses.forEach((house) => minimapCtx.fillRect(house.x, house.y, house.w, house.h));
 
@@ -1103,6 +1424,7 @@ function updateUI() {
     hpBar.value = player.hp;
     staminaBar.value = player.stamina;
     hungerBar.value = player.hunger;
+    thirstBar.value = player.thirst;
     painBar.value = player.pain;
     disease.innerText = player.disease;
     risk.innerText = getRiskLevel();
@@ -1135,6 +1457,7 @@ function gameLoop(now) {
     updatePlayer(dt);
     updateMonster(dt);
     diseaseSystem();
+    maybeTriggerEmergencyNotification();
     if (checkGameOver()) {
         draw();
         drawMiniMap();
@@ -1148,11 +1471,18 @@ function gameLoop(now) {
 
 setInterval(() => {
     player.hunger = Math.max(0, player.hunger - 1);
+    player.thirst = Math.max(0, player.thirst - 1.2);
     player.pain = Math.min(100, player.pain + 0.3);
     if (player.stamina < 100) player.stamina = Math.min(100, player.stamina + 0.5);
 }, 5000);
 
 function initGame() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch((error) => {
+            console.warn('Service worker registration failed:', error);
+        });
+    }
+
     refreshPlayerStats();
     bindEvents();
     focusGame();
